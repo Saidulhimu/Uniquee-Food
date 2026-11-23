@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const verifyToken = require('../middlewares/verifyToken');
 
+const ADMIN_EMAIL = 'saidulhimuu@gmail.com';
+
 // Generate JWT token on login
 router.post('/jwt', async (req, res) => {
   try {
@@ -13,11 +15,13 @@ router.post('/jwt', async (req, res) => {
     }
 
     const secret = process.env.JWT_SECRET || 'uniquee_food_super_secret_jwt_key_2026';
-    const token = jwt.sign({ email }, secret, { expiresIn: '7d' });
+    const role = email.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
+    const token = jwt.sign({ email, role }, secret, { expiresIn: '7d' });
 
     res.json({
       success: true,
       token,
+      role,
       message: 'Token issued successfully',
     });
   } catch (error) {
@@ -34,24 +38,23 @@ router.post('/sync-user', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
+    const isFixedAdmin = email.toLowerCase() === ADMIN_EMAIL || (process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL.toLowerCase() === email.toLowerCase());
+
     let user = await User.findOne({ email });
 
     if (!user) {
-      // First user registered or designated admin email automatically gets admin
-      const totalUsers = await User.countDocuments();
-      const isAdminByEnv = process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL.toLowerCase() === email.toLowerCase();
-      const initialRole = totalUsers === 0 || isAdminByEnv ? 'admin' : 'user';
-
       user = await User.create({
-        name: name || email.split('@')[0],
+        name: isFixedAdmin ? (name || 'Saidul Himu (Admin)') : (name || email.split('@')[0]),
         email,
         photoURL: photoURL || '',
         phone: phone || '',
         address: address || '',
-        role: initialRole,
+        role: isFixedAdmin ? 'admin' : 'user',
       });
     } else {
-      // Update basic fields if provided
+      if (isFixedAdmin && user.role !== 'admin') {
+        user.role = 'admin';
+      }
       if (name) user.name = name;
       if (photoURL) user.photoURL = photoURL;
       if (phone) user.phone = phone;
@@ -74,6 +77,9 @@ router.post('/sync-user', async (req, res) => {
 router.get('/check-admin/:email', async (req, res) => {
   try {
     const email = req.params.email;
+    if (email && email.toLowerCase() === ADMIN_EMAIL) {
+      return res.json({ isAdmin: true, role: 'admin' });
+    }
     const user = await User.findOne({ email });
     const isAdmin = Boolean(user && user.role === 'admin' && !user.isBlocked);
     res.json({ isAdmin, role: user ? user.role : 'user' });

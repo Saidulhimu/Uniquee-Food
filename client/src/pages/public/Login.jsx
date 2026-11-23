@@ -39,8 +39,15 @@ export const Login = () => {
   };
 
   const handleDemoLogin = (role) => {
+    if (role === 'admin') {
+      setEmail('saidulhimuu@gmail.com');
+      setPassword('Himel12345');
+    } else {
+      setEmail('customer@uniqueefood.com');
+      setPassword('Customer123');
+    }
     loginAsDemo(role);
-    toast.success(`Logged in as Demo ${role === 'admin' ? 'Store Administrator' : 'Customer'}!`);
+    toast.success(`Logged in as ${role === 'admin' ? 'Saidul Himu (Store Admin)' : 'Customer'}!`);
     if (role === 'admin') {
       navigate('/admin/dashboard');
     } else {

@@ -20,9 +20,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Sync token and role with backend
+  const FIXED_ADMIN_EMAIL = 'saidulhimuu@gmail.com';
+
   const syncWithBackend = async (firebaseUser, extraData = {}) => {
     try {
       if (!firebaseUser?.email) return;
+
+      const isFixedAdmin = firebaseUser.email.toLowerCase() === FIXED_ADMIN_EMAIL;
+      if (isFixedAdmin) {
+        setUserRole('admin');
+      }
 
       // 1. Get JWT Token from backend
       try {
@@ -32,6 +39,9 @@ export const AuthProvider = ({ children }) => {
         if (tokenRes.data?.token) {
           localStorage.setItem('uniquee_token', tokenRes.data.token);
         }
+        if (tokenRes.data?.role) {
+          setUserRole(tokenRes.data.role);
+        }
       } catch (err) {
         console.warn('Backend JWT issue, using client session fallback:', err.message);
       }
@@ -40,7 +50,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const syncRes = await axios.post(`${API_URL}/auth/sync-user`, {
           email: firebaseUser.email,
-          name: firebaseUser.displayName || extraData.name || firebaseUser.email.split('@')[0],
+          name: firebaseUser.displayName || extraData.name || (isFixedAdmin ? 'Saidul Himu (Admin)' : firebaseUser.email.split('@')[0]),
           photoURL: firebaseUser.photoURL || extraData.photoURL || '',
           phone: extraData.phone || '',
           address: extraData.address || '',
@@ -49,8 +59,7 @@ export const AuthProvider = ({ children }) => {
           setUserRole(syncRes.data.user.role);
         }
       } catch (err) {
-        // Fallback: check if email contains admin
-        if (firebaseUser.email.toLowerCase().includes('admin')) {
+        if (isFixedAdmin || firebaseUser.email.toLowerCase().includes('admin')) {
           setUserRole('admin');
         } else {
           setUserRole('user');
@@ -145,18 +154,19 @@ export const AuthProvider = ({ children }) => {
 
   // Instant Demo Switch for Seamless Evaluation (Admin & Customer)
   const loginAsDemo = (role = 'admin') => {
+    const isSpecialAdmin = role === 'admin';
     const demoUser = {
-      uid: role === 'admin' ? 'admin_demo_id' : 'customer_demo_id',
-      email: role === 'admin' ? 'admin@uniqueefood.com' : 'customer@uniqueefood.com',
-      displayName: role === 'admin' ? 'Saidul (Admin)' : 'Rafiqul Islam',
-      photoURL: role === 'admin' 
+      uid: isSpecialAdmin ? 'admin_himu_id' : 'customer_demo_id',
+      email: isSpecialAdmin ? 'saidulhimuu@gmail.com' : 'customer@uniqueefood.com',
+      displayName: isSpecialAdmin ? 'Saidul Himu (Admin)' : 'Rafiqul Islam',
+      photoURL: isSpecialAdmin 
         ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150' 
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
     };
     setUser(demoUser);
-    setUserRole(role);
+    setUserRole(isSpecialAdmin ? 'admin' : 'user');
     localStorage.setItem('uniquee_demo_user', JSON.stringify(demoUser));
-    localStorage.setItem('uniquee_demo_role', role);
+    localStorage.setItem('uniquee_demo_role', isSpecialAdmin ? 'admin' : 'user');
     localStorage.setItem('uniquee_token', 'demo_jwt_token_' + role);
   };
 
