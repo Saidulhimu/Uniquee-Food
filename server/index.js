@@ -3,6 +3,14 @@ const cors = require('cors');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const dns = require('dns');
+
+// Configure reliable DNS servers for MongoDB Atlas SRV resolution
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (e) {
+  // Ignore if restricted
+}
 
 dotenv.config();
 

@@ -32,7 +32,7 @@ export const AddProduct = () => {
     const formData = new FormData();
     formData.append('image', file);
 
-    const imgbbKey = import.meta.env.VITE_IMGBB_KEY || 'placeholder_imgbb_key';
+    const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY || import.meta.env.VITE_IMGBB_KEY || 'bb5f791a57ddfc887f2fd196f5be7264';
 
     try {
       const res = await axios.post(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, formData);
